@@ -13,7 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const config_1 = require("./config");
 const db_1 = require("./db");
+const middleware_1 = require("./middleware");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.post("/api/v1/signup", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -21,23 +24,79 @@ app.post("/api/v1/signup", (req, res) => __awaiter(void 0, void 0, void 0, funct
     //if same username exist error status
     const username = req.body.username;
     const password = req.body.password;
-    yield db_1.UserModel.create({
-        username: username,
-        password: password
+    try {
+        yield db_1.UserModel.create({
+            username: username,
+            password: password
+        });
+        res.json({
+            message: "user signed up",
+        });
+    }
+    catch (e) {
+        res.status(411).json({
+            message: "username already exists"
+        });
+    }
+}));
+app.post("/api/v1/signin", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const username = req.body.username;
+    const password = req.body.password;
+    const existinguser = yield db_1.UserModel.findOne({
+        username,
+        password
+    });
+    if (existinguser) {
+        const token = jsonwebtoken_1.default.sign({
+            id: existinguser._id
+        }, config_1.JWT_PASSWORD);
+        res.json({
+            token
+        });
+    }
+    else {
+        res.status(403).json({
+            message: "Incorrect Credentials"
+        });
+    }
+}));
+app.post("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const link = req.body.link;
+    const type = req.body.type;
+    yield db_1.ContentModel.create({
+        link,
+        type,
+        //@ts-ignore
+        userId: req.userId,
+        tags: []
     });
     res.json({
-        message: "user signed up",
+        message: "Content added"
     });
 }));
-app.post("/api/v1/signin", (req, res) => {
-});
-app.post("/api/v1/content", (req, res) => {
-});
-app.get("/api/v1/content", (req, res) => {
-});
-app.delete("/api/v1/content", (req, res) => {
-});
+app.get("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const userId = req.userId;
+    const content = yield db_1.ContentModel.find({
+        userId: userId
+    }).populate("userId", "username");
+    res.json({
+        content
+    });
+}));
+app.delete("/api/v1/content", middleware_1.userMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const contentId = req.body.contentId;
+    yield db_1.ContentModel.deleteMany({
+        contentId,
+        //@ts-ignore
+        userId: req.user.Id
+    });
+    res.json({
+        message: "deleted"
+    });
+}));
 app.post("/api/v1/brain/share", (req, res) => {
 });
 app.get("/api/v1/brain/:sharelink", (req, res) => {
 });
+app.listen(5001);
