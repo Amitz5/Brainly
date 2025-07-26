@@ -1,6 +1,6 @@
 import mongoose,{model, Schema} from "mongoose";
 
-mongoose.connect("MONGO_URL");
+mongoose.connect("mongodb+srv://Amitz5:amitoz475@cluster1.heirvrx.mongodb.net/");
 
 const UserSchema = new Schema({
     username: {type: String, unique: true},
@@ -16,6 +16,14 @@ const ContentSchema = new Schema({
     userId: {type: mongoose.Types.ObjectId, ref: 'User',
         required:true  }
 })
+
+const LinkSchema = new Schema({
+    hash: String,
+    userId:{type: mongoose.Types.ObjectId, ref: 'User', required:true,
+        unique:true },
+})
+
+export const LinkModel = model("Links", LinkSchema);
 
 export const ContentModel = model("Content", ContentSchema);
 

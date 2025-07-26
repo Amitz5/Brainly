@@ -5,8 +5,10 @@ import jwt from "jsonwebtoken";
 
 import { JWT_PASSWORD } from './config';
 
-import { UserModel, ContentModel } from "./db" ;
+import { UserModel, ContentModel, LinkModel } from "./db" ;
 import { userMiddleware } from "./middleware";
+
+import { random } from "./utils";
 
 const app = express();
 app.use(express.json());
@@ -96,11 +98,73 @@ app.delete("/api/v1/content",userMiddleware, async(req, res) => {
     })
 }) 
 
-app.post("/api/v1/brain/share", (req, res) => {
-    
+app.post("/api/v1/brain/share",userMiddleware, async (req, res) => {
+    const share = req.body.share;
+        if(share) {
+            const existingLink =  await LinkModel.findOne({
+                //@ts-ignore
+                userId: req.userId
+            });
+
+            if(existingLink){
+                res.json({
+                    hash: existingLink.hash
+                })
+                return;
+            }
+
+        const hash = random(10);
+        await LinkModel.create({
+            //@ts-ignore
+            userId: req.userId,
+            hash: hash
+        })
+        
+        res.json({
+            message:"/share/" + hash
+        })
+    } else {
+        await LinkModel.deleteOne({
+            //@ts-ignore
+            userId: req.userId
+        })
+    }
+    res.json({
+        message: "Removed Link"
+    })
+
 }) 
 
-app.get("/api/v1/brain/:sharelink", (req, res) => {
-    
+app.get("/api/v1/brain/:sharelink", async(req, res) => {
+    const hash  = req.params.sharelink;
+    const Link = await LinkModel.findOne({
+        hash
+    });
+
+    if(!Link) {
+        res.status(411).json ({
+            message:"sorry incorrect input"
+        })
+        return;
+    }
+
+    const content = await ContentModel.find({
+        userId: Link.userId
+    })
+
+    const user = await UserModel.findOne({
+        _Id: Link.userId
+    })
+    if(!user){
+        res.status(411).json({
+            message: "user not found"
+        })
+        return;
+    }
+
+    res.json({
+        username: user.username,
+        content: content
+    })
 }) 
 app.listen(5001);
