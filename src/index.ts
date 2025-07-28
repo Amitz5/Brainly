@@ -64,7 +64,6 @@ app.post("/api/v1/content", userMiddleware, async(req, res) => {
     await ContentModel.create({
         link,
         type,
-        //@ts-ignore
         userId: req.userId,
         tags: []
     })
@@ -75,7 +74,6 @@ app.post("/api/v1/content", userMiddleware, async(req, res) => {
 }) 
 
 app.get("/api/v1/content", userMiddleware, async(req, res) => {
-    //@ts-ignore
     const userId = req.userId;
     const content = await ContentModel.find({
         userId: userId
@@ -90,8 +88,7 @@ app.delete("/api/v1/content",userMiddleware, async(req, res) => {
 
     await ContentModel.deleteMany({
         contentId,
-        //@ts-ignore
-        userId: req.user.Id
+        userId: req.userId
     })
     res.json({
         message: "deleted"
@@ -102,7 +99,6 @@ app.post("/api/v1/brain/share",userMiddleware, async (req, res) => {
     const share = req.body.share;
         if(share) {
             const existingLink =  await LinkModel.findOne({
-                //@ts-ignore
                 userId: req.userId
             });
 
@@ -115,7 +111,6 @@ app.post("/api/v1/brain/share",userMiddleware, async (req, res) => {
 
         const hash = random(10);
         await LinkModel.create({
-            //@ts-ignore
             userId: req.userId,
             hash: hash
         })
